@@ -39,15 +39,43 @@ function readFile(path)
 
 function loadMidi(path){
 	var file = readFile(path);
-	var hex = "";
-	var foralert = "";
-	for (var i = 0; i < file.length; i++) {
-	  var n = file.charCodeAt(i);
-	  hex += ('00' + n.toString(16)).slice(-2);
+	var foralert = ""
+	var trackNum = file.charCodeAt(0x0b);
+	foralert += trackNum;
+	var itr = 0x12;
+	var tracks = new Array();
+	for (var i = 0; i < trackNum; i++) {
+		var length = getBinaryNum(file, itr, itr + 4);
+		alert(length);
+		tracks.push(file.substring(itr + 8, itr + length + 4));
+		itr += length + 8;
 	};
-	foralert += hex.substr(0, 20);
-	foralert += "format: " + file.substr(8, 10) + "\n";
+	alert(tracks[0]);
 	alert(foralert);
+	for (var i in tracks) {
+		var t = 0;
+		for (var j=0, len=tracks[i].length; j < len;) {
+			if( tracks[i].charCodeAt(j) & 0x80  != 0){
+			  t += getBinaryNum(tracks, j, j + 2) - 0xf000;
+			  j += 2;
+			}
+			else{
+			  t += getBinaryNum(tracks, j, j + 1);
+			  j++;
+			}
+			  
+		};
+	  
+	};
+}
+
+function getBinaryNum(file, start, end){
+	var l = 0;
+	for (var i = start; i < end; i++) {
+		l <<= 8;
+		l |= file.charCodeAt(i);;
+	};
+	return l;
 }
 
 
