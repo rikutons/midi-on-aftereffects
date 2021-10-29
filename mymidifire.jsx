@@ -40,6 +40,7 @@ class MidiReader{
 			ret <<= 8;
 			ret |= this.file.charCodeAt(this.index + i);
 		}
+		this.index += length;
 
 		return ret;
 	}
@@ -47,12 +48,12 @@ class MidiReader{
 	getFlexibleNum(isTrack = false) {
 		var num;
 		if (this.getNum(1, isTrack) & 0x80 != 0) {
-			num = getNum(2, isTrack) - 0xf000;
-			this.index += 2;
+			this.index--;
+			num = getNum(2, isTrack) - 0x8000;
 		}
 		else {
+			this.index--;
 			num = getNum(1, isTrack);
-			this.index++;
 		}
 		return num;
 	}
@@ -85,23 +86,66 @@ class MidiReader{
 		}
 	}
 
-	// WIP
 	readLayerNames() {
-		for (var i in tracks) {
+		var layerNames = [];
+		for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
 			var t = 0;
-			for (var j = 0, len = tracks[i].length; j < len;) {
-				var dt;
-				[dt, j] = getFlexibleNum(tracks[i], j);
-				t += dt;
+			this.index = 0;
+			while(this.index < this.tracks[this.trackIndex].length) {
+				t += getFlexibleNum(true);
 
-				var event = tracks[i].charCodeAt(j);
-				j++;
+				var event = this.getNum(1, true);
+				// SysEx Event
 				if (event == 0xf0 || event == 0xf7) {
 					var length = this.getFlexibleNum(true);
-					alert("SysEx");
+					this.index += length;
+					if (event == 0x70)
+						this.index++;
+				}
+				// Meta Event
+				else if (event == 0xFF) {
+					var eventType = this.getNum(1, true);
+					if (eventType << 4 == 0) {
+						var length = this.getFlexibleNum(true);
+						if (eventType != 3) {
+							this.index += length;
+						}
+						else {
+							layerNames.push(this.getStr(true).substring(this.index, this.index + length));
+							break;
+						}
+					}
+					else {
+						switch (eventType) {
+							// End of Track
+							case 0x2f:
+								this.index++;
+								break;
+							// Set Tempo
+							case 0x51:
+								this.index += 4;
+								break;
+							// Time Signature
+							case 0x58:
+								this.index += 5;
+								break;
+							// Key Signature
+							case 0x59:
+								this.index += 3;
+								break;
+							default:
+								alert("unregisterred eventType: " + eventType);
+								break;
+						}
+					}
+				}
+				// MIDI Event
+				else {
+					this.index += 4;
 				}
 			}
 		}
+		return layerNames;
 	}
 }
 
@@ -113,6 +157,8 @@ setting1();
 function onLoadButtonClicked(path) {
 	midiReader = new MidiReader();
 	midiReader.load(path);
+	midiReader.divideTracks();
+	var trackNames = midiReader.readLayerNames();
 }
 
 // main 3(When Track selected)
