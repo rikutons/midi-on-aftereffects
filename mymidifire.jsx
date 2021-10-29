@@ -1,0 +1,167 @@
+﻿function setting1(){
+	var window = new Window("dialog", "MidiFire");
+	var parentGroup = window.add("group");
+	parentGroup.orientation = 'column';
+
+	// -- midipath --
+	var midiPathGroup = parentGroup.add("group");
+	midiPathGroup.orientation = 'row';
+	var midiPathText = midiPathGroup.add("statictext",undefined,"");
+	midiPathText.characters = 20;
+	var midiLoader = midiPathGroup.add('button',undefined, '...');
+	midiLoader.onClick= function () {
+		midiPath = File.openDialog("Select Midi file", "*.mid")
+		midiPathText.text= midiPath;
+	}
+	// ----
+
+	var executeButton = parentGroup.add("button",undefined, "Load");
+	executeButton.onClick = function(){
+		window.close();
+		onLoadButtonClicked(midiPathText.text);
+	}
+
+	window.center();
+	window.show();
+}
+
+class MidiReader{
+	getStr(isTrack) {
+		if (isTrack)
+			return this.tracks[this.trackIndex];
+		else
+			return this.file;
+	}
+
+	getNum(length, isTrack = false) {
+		var str = this.getStr(isTrack);
+		var ret = 0;
+		for (var i = 0; i < length; i++) {
+			ret <<= 8;
+			ret |= this.file.charCodeAt(this.index + i);
+		}
+		this.index += length;
+
+		return ret;
+	}
+
+	getFlexibleNum(isTrack = false) {
+		var num;
+		if (this.getNum(1, isTrack) & 0x80 != 0) {
+			this.index--;
+			num = getNum(2, isTrack) - 0x8000;
+		}
+		else {
+			this.index--;
+			num = getNum(1, isTrack);
+		}
+		return num;
+	}
+
+	constructor() {
+		this.file = "";
+		this.tracks = [];
+		this.trackNum = -1;
+		this.trackIndex = 0;
+		this.index = 0;
+	}
+
+	load(path) {
+		var f = new File(path);
+		f.encoding = "BINARY";
+
+		f.open("r");
+		var length = f.length;
+		this.file = f.read(length);
+		f.close();
+	}
+
+	divideTracks() {
+		index = 0x12;
+		for (var i = 0; i < trackNum; i++) {
+			var length = getNum(4);
+			alert(length);
+			this.tracks.push(file.substring(index + 8, index + length + 4));
+			index += length + 8;
+		}
+	}
+
+	readLayerNames() {
+		var layerNames = [];
+		for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
+			var t = 0;
+			this.index = 0;
+			while(this.index < this.tracks[this.trackIndex].length) {
+				t += getFlexibleNum(true);
+
+				var event = this.getNum(1, true);
+				// SysEx Event
+				if (event == 0xf0 || event == 0xf7) {
+					var length = this.getFlexibleNum(true);
+					this.index += length;
+					if (event == 0x70)
+						this.index++;
+				}
+				// Meta Event
+				else if (event == 0xFF) {
+					var eventType = this.getNum(1, true);
+					if (eventType << 4 == 0) {
+						var length = this.getFlexibleNum(true);
+						if (eventType != 3) {
+							this.index += length;
+						}
+						else {
+							layerNames.push(this.getStr(true).substring(this.index, this.index + length));
+							break;
+						}
+					}
+					else {
+						switch (eventType) {
+							// End of Track
+							case 0x2f:
+								this.index++;
+								break;
+							// Set Tempo
+							case 0x51:
+								this.index += 4;
+								break;
+							// Time Signature
+							case 0x58:
+								this.index += 5;
+								break;
+							// Key Signature
+							case 0x59:
+								this.index += 3;
+								break;
+							default:
+								alert("unregisterred eventType: " + eventType);
+								break;
+						}
+					}
+				}
+				// MIDI Event
+				else {
+					this.index += 4;
+				}
+			}
+		}
+		return layerNames;
+	}
+}
+
+// main
+var midiReader;
+setting1();
+
+// main 2(When Load button Pushed)
+function onLoadButtonClicked(path) {
+	midiReader = new MidiReader();
+	midiReader.load(path);
+	midiReader.divideTracks();
+	var trackNames = midiReader.readLayerNames();
+}
+
+// main 3(When Track selected)
+function onSelectButtonClicked() {
+	
+}
