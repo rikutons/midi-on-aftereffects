@@ -1,4 +1,5 @@
-﻿function setting1(){
+﻿var encoding = require('encoding-japanese');
+function setting1(){
 	var window = new Window("dialog", "MidiFire");
 	var parentGroup = window.add("group");
 	parentGroup.orientation = 'column';
@@ -38,7 +39,7 @@ class MidiReader{
 		var ret = 0;
 		for (var i = 0; i < length; i++) {
 			ret <<= 8;
-			ret |= this.file.charCodeAt(this.index + i);
+			ret |= str.charCodeAt(this.index + i);
 		}
 		this.index += length;
 
@@ -49,11 +50,11 @@ class MidiReader{
 		var num;
 		if (this.getNum(1, isTrack) & 0x80 != 0) {
 			this.index--;
-			num = getNum(2, isTrack) - 0x8000;
+			num = this.getNum(2, isTrack) - 0x8000;
 		}
 		else {
 			this.index--;
-			num = getNum(1, isTrack);
+			num = this.getNum(1, isTrack);
 		}
 		return num;
 	}
@@ -77,12 +78,13 @@ class MidiReader{
 	}
 
 	divideTracks() {
-		index = 0x12;
-		for (var i = 0; i < trackNum; i++) {
-			var length = getNum(4);
-			alert(length);
-			this.tracks.push(file.substring(index + 8, index + length + 4));
-			index += length + 8;
+		this.index = 0x0B;
+		this.trackNum = this.getNum(1, false);
+		this.index = 0x12;
+		for (var i = 0; i < this.trackNum; i++) {
+			var length = this.getNum(4);
+			this.tracks.push(this.file.substring(this.index, this.index + length));
+			this.index += length + 4;
 		}
 	}
 
@@ -91,8 +93,9 @@ class MidiReader{
 		for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
 			var t = 0;
 			this.index = 0;
+			this.index = 0;
 			while(this.index < this.tracks[this.trackIndex].length) {
-				t += getFlexibleNum(true);
+				t += this.getFlexibleNum(true);
 
 				var event = this.getNum(1, true);
 				// SysEx Event
@@ -105,13 +108,15 @@ class MidiReader{
 				// Meta Event
 				else if (event == 0xFF) {
 					var eventType = this.getNum(1, true);
-					if (eventType << 4 == 0) {
+					if (eventType >> 4 == 0) {
 						var length = this.getFlexibleNum(true);
 						if (eventType != 3) {
 							this.index += length;
 						}
 						else {
-							layerNames.push(this.getStr(true).substring(this.index, this.index + length));
+							var sjisText = this.getStr(true).substring(this.index, this.index + length);
+							var text = encoding.convert( sjisText, "UNICODE", "SJIS");
+							layerNames.push(text);
 							break;
 						}
 					}
@@ -159,6 +164,9 @@ function onLoadButtonClicked(path) {
 	midiReader.load(path);
 	midiReader.divideTracks();
 	var trackNames = midiReader.readLayerNames();
+	for (var i in trackNames) {
+		alert(trackNames[i]);
+	};
 }
 
 // main 3(When Track selected)
