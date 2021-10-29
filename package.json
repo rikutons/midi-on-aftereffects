@@ -1,0 +1,26 @@
+{
+  "name": "midi-on-aftereffects",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "webpack": "^5.61.0",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.4.0",
+    "webpack-es3-plugin": "^1.5.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rikutons/midi-on-aftereffects.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rikutons/midi-on-aftereffects/issues"
+  },
+  "homepage": "https://github.com/rikutons/midi-on-aftereffects#readme"
+}
