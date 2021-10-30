@@ -5899,8 +5899,8 @@
                     this.index += length + 4;
                 }
             };
-            MidiReader.prototype.readLayerNames = function () {
-                var layerNames = [];
+            MidiReader.prototype.readTrackNames = function () {
+                var trackNames = [];
                 for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
                     var t = 0;
                     this.index = 0;
@@ -5926,7 +5926,7 @@
                                 else {
                                     var sjisText = this.getStr(true).substring(this.index, this.index + length);
                                     var text = encoding.convert(sjisText, "UNICODE", "SJIS");
-                                    layerNames.push(text);
+                                    trackNames.push(text);
                                     break;
                                 }
                             }
@@ -5960,7 +5960,7 @@
                         }
                     }
                 }
-                return layerNames;
+                return trackNames;
             };
             return MidiReader;
         }());
@@ -5972,7 +5972,7 @@
             midiReader = new MidiReader();
             midiReader.load(path);
             midiReader.divideTracks();
-            var trackNames = midiReader.readLayerNames();
+            var trackNames = midiReader.readTrackNames();
             for (var i in trackNames) {
                 alert(trackNames[i]);
             }
