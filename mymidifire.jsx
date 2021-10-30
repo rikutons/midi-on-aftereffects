@@ -1,4 +1,4 @@
-﻿var encoding = require('encoding-japanese');
+var encoding = require('encoding-japanese');
 function setting1(){
 	var window = new Window("dialog", "MidiFire");
 	var parentGroup = window.add("group");
@@ -26,7 +26,23 @@ function setting1(){
 	window.show();
 }
 
-class MidiReader{
+function setting2(trackNames) {
+	var window = new Window("dialog", "MidiFire");
+	var parentGroup = window.add("group");
+	parentGroup.orientation = 'column';
+	// -- trackName --
+	var trackDropDownList = parentGroup.add("dropdownlist", undefined, trackNames);
+	var executeButton = parentGroup.add("button", undefined, "Start");
+	executeButton.onClick = function () {
+		window.close();
+		onSelectButtonClicked(trackDropDownList.selection.index);
+	}
+
+	window.center();
+	window.show();
+}
+
+class MidiReader {
 	getStr(isTrack) {
 		if (isTrack)
 			return this.tracks[this.trackIndex];
@@ -164,9 +180,7 @@ function onLoadButtonClicked(path) {
 	midiReader.load(path);
 	midiReader.divideTracks();
 	var trackNames = midiReader.readTrackNames();
-	for (var i in trackNames) {
-		alert(trackNames[i]);
-	};
+	setting2(trackNames);
 }
 
 // main 3(When Track selected)
