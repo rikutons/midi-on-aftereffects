@@ -30,12 +30,31 @@ function setting2(trackNames) {
 	var window = new Window("dialog", "MidiFire");
 	var parentGroup = window.add("group");
 	parentGroup.orientation = 'column';
-	// -- trackName --
-	var trackDropDownList = parentGroup.add("dropdownlist", undefined, trackNames);
+
+	// -- track --
+	var trackGroup = parentGroup.add("group");
+	trackGroup.orientation = 'row';
+	var trackText = trackGroup.add("statictext", undefined, "track: ");
+	var trackDropDownList = trackGroup.add("dropdownlist", undefined, trackNames);
+
+	// -- item --
+	var itemNames = [];
+	var items = [];
+	for (var i = 1; i <= app.project.items.length; i++) {
+		if(app.project.items[i] instanceof FootageItem || app.project.items[i] instanceof CompItem){
+			itemNames.push(app.project.items[i].name);
+			items.push(app.project.items[i]);
+		}
+	}
+	var itemGroup = parentGroup.add("group");
+	itemGroup.orientation = 'row';
+	var itemText = itemGroup.add("statictext", undefined, "item: ");
+	var itemDropDownList = itemGroup.add("dropdownlist", undefined, itemNames);
+
 	var executeButton = parentGroup.add("button", undefined, "Start");
 	executeButton.onClick = function () {
 		window.close();
-		onSelectButtonClicked(trackDropDownList.selection.index);
+		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index]);
 	}
 
 	window.center();
@@ -184,6 +203,6 @@ function onLoadButtonClicked(path) {
 }
 
 // main 3(When Track selected)
-function onSelectButtonClicked() {
+function onSelectButtonClicked(trackIndex, item) {
 	
 }
