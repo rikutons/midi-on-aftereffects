@@ -94,9 +94,12 @@ class MidiReader {
 	constructor() {
 		this.file = "";
 		this.tracks = [];
+		this.trackNames = [];
 		this.trackNum = -1;
 		this.trackIndex = 0;
 		this.index = 0;
+		this.resolution = 0;
+		this.tempo = [];
 	}
 
 	load(path) {
@@ -120,12 +123,13 @@ class MidiReader {
 		}
 	}
 
-	readTrackNames() {
-		var trackNames = [];
+	readInfo() {
+		this.index = 0x0C;
+		this.resolution = this.getNum(2);
 		for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
 			var t = 0;
 			this.index = 0;
-			this.index = 0;
+			// alert("track: " + this.trackIndex);
 			while(this.index < this.tracks[this.trackIndex].length) {
 				t += this.getFlexibleNum(true);
 
@@ -140,19 +144,38 @@ class MidiReader {
 				// Meta Event
 				else if (event == 0xFF) {
 					var eventType = this.getNum(1, true);
-					if (eventType >> 4 == 0) {
-						var length = this.getFlexibleNum(true);
-						if (eventType != 3) {
-							this.index += length;
-						}
-						else {
+					var length = this.getFlexibleNum(true);
+					// alert("eventType" + eventType.toString(16));
+					switch (eventType) {
+						// Sequence/Track Name
+						case 0x03:
 							var sjisText = this.getStr(true).substring(this.index, this.index + length);
 							var text = encoding.convert( sjisText, "UNICODE", "SJIS");
-							trackNames.push(text);
+							this.trackNames.push(text);
+							this.index += length;
 							break;
-						}
+						// Set Tempo
+						case 0x51:
+							this.tempo.push({t: t, tempo: this.getNum(3, true)});
+							$.writeln("t: " + this.tempo[this.tempo.length - 1].t)
+							$.writeln("tempo: " + this.tempo[this.tempo.length - 1].tempo);
+							break;
+						default:
+							this.index += length;
+							break;
 					}
-					else {
+				}
+				// MIDI Event
+				else {
+					this.index += 4;
+				}
+			}
+		}
+	}
+
+	getTrackNames(){
+		return this.trackNames;
+	}
 						switch (eventType) {
 							// End of Track
 							case 0x2f:
@@ -195,7 +218,8 @@ function onLoadButtonClicked(path) {
 	midiReader = new MidiReader();
 	midiReader.load(path);
 	midiReader.divideTracks();
-	var trackNames = midiReader.readTrackNames();
+	midiReader.readInfo();
+	var trackNames = midiReader.getTrackNames();
 	setting2(trackNames);
 }
 
