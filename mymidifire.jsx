@@ -1,4 +1,4 @@
-var encoding = require('encoding-japanese');
+﻿var encoding = require('encoding-japanese');
 var gFileName = "";
 function setting1(){
 	var window = new Window("dialog", "MidiFire");
@@ -166,6 +166,8 @@ class MidiReader {
 				t += this.getFlexibleNum(true);
 
 				var event = this.getNum(1, true);
+				// alert(event.toString(16));
+				// alert(this.index);
 				// SysEx Event
 				if (event == 0xf0 || event == 0xf7) {
 					var length = this.getFlexibleNum(true);
@@ -222,10 +224,10 @@ class MidiReader {
 		var timings = [];
 		while(this.index < this.tracks[this.trackIndex].length) {
 			t += this.getFlexibleNum(true);
-			$.writeln("t: " + t);
+			// $.writeln("t: " + t);
 
 			var event = this.getNum(1, true);
-			$.writeln("event: " + event.toString(16));
+			// $.writeln("event: " + event.toString(16));
 			if (event == 0xf0 || event == 0xf7) {
 				var length = this.getFlexibleNum(true);
 				this.index += length;
@@ -266,7 +268,7 @@ class MidiReader {
 						var s = this.getSecond(t) - offset;
 						if(s < 0)
 							break;
-						$.writeln("s: " + s);
+						// $.writeln("s: " + s);
 						timings.push(s);
 						break;
 				}
@@ -291,6 +293,22 @@ class MidiReader {
 	}
 }
 
+function makeLayer(timings, item) {
+	var fps = 30;
+	var myComp = app.project.items.addComp('myComp', 1920, 1080, 1, 120, fps);
+	var layer = myComp.layers.add(item);
+	layer.timeRemapEnabled = true;
+	layer.startTime = timings[0];
+	for (let i = 0; i < timings.length; i++) {
+		var dir = i % 2 == 0 ? 1 : -1;
+		if(i != 0) {
+			var beforeT = timings[i] - 0.0001;
+			layer.scale.setValueAtTime(beforeT, [100 * -dir, 100]);
+			// layer.property("Time Remap").addKey(beforeT);
+			layer.property("Time Remap").setValueAtTime(beforeT, Math.min(beforeT - timings[i - 1], item.duration));
+		}
+		layer.scale.setValueAtTime(timings[i], [100 * dir, 100]);
+		layer.property("Time Remap").setValueAtTime(timings[i], 0);
 	}
 }
 
@@ -311,4 +329,5 @@ function onLoadButtonClicked(path) {
 // main 3(When Track selected)
 function onSelectButtonClicked(trackIndex, item, offset) {
 	var timings = midiReader.readTimings(trackIndex, offset);
+	makeLayer(timings, item);
 }

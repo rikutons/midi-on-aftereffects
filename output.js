@@ -5820,25 +5820,33 @@
           !*** ./mymidifire.jsx ***!
           \************************/
         var encoding = __webpack_require__(/*! encoding-japanese */ "./node_modules/encoding-japanese/src/index.js");
+        var gFileName = "";
         function setting1() {
             var window = new Window("dialog", "MidiFire");
             var parentGroup = window.add("group");
             parentGroup.orientation = 'column';
+            var midiPath = "";
             // -- midipath --
-            var midiPathGroup = parentGroup.add("group");
+            var midiPathPanel = parentGroup.add("panel", undefined, "Midi Setting");
+            midiPathPanel.add("statictext", undefined, "Select .midi File");
+            var midiPathGroup = midiPathPanel.add("group");
             midiPathGroup.orientation = 'row';
             var midiPathText = midiPathGroup.add("statictext", undefined, "");
             midiPathText.characters = 20;
             var midiLoader = midiPathGroup.add('button', undefined, '...');
             midiLoader.onClick = function () {
                 midiPath = File.openDialog("Select Midi file", "*.mid");
-                midiPathText.text = midiPath;
+                gFileName = midiPath.displayName;
+                midiPathText.text = midiPath.displayName;
             };
             // ----
-            var executeButton = parentGroup.add("button", undefined, "Load");
+            var buttonGroup = parentGroup.add("group");
+            buttonGroup.orientation = 'row';
+            buttonGroup.alignment = "right";
+            var executeButton = buttonGroup.add("button", undefined, "Load");
             executeButton.onClick = function () {
                 window.close();
-                onLoadButtonClicked(midiPathText.text);
+                onLoadButtonClicked(midiPath);
             };
             window.center();
             window.show();
@@ -5847,11 +5855,33 @@
             var window = new Window("dialog", "MidiFire");
             var parentGroup = window.add("group");
             parentGroup.orientation = 'column';
+            parentGroup.alignChildren = 'left';
+            var midiPanel = parentGroup.add("panel", undefined, "Midi Setting");
+            midiPanel.orientation = "row";
+            var midiGroupL = midiPanel.add("group");
+            midiGroupL.alignment = "left";
+            midiGroupL.orientation = "column";
+            var midiGroupR = midiPanel.add("group");
+            midiGroupR.alignment = "left";
+            midiGroupR.alignChildren = 'left';
+            midiGroupR.orientation = "column";
+            midiGroupL.add("statictext", undefined, "name:");
+            midiGroupR.add("statictext", undefined, gFileName);
             // -- track --
-            var trackGroup = parentGroup.add("group");
-            trackGroup.orientation = 'row';
-            var trackText = trackGroup.add("statictext", undefined, "track: ");
-            var trackDropDownList = trackGroup.add("dropdownlist", undefined, trackNames);
+            midiGroupL.add("statictext", undefined, "track: ");
+            var trackDropDownList = midiGroupR.add("dropdownlist", undefined, trackNames);
+            // -- offset --
+            midiGroupL.add("statictext", undefined, "offset: ");
+            var offsetGroup = midiGroupR.add("group");
+            var offsetEditText = offsetGroup.add("edittext", [0, 0, 60, 20], "0");
+            offsetGroup.alignment = "left";
+            offsetGroup.add("statictext", undefined, "[beats]");
+            var layerPanel = parentGroup.add("panel", undefined, "New Layer Setting");
+            layerPanel.orientation = "row";
+            var layerGroupL = layerPanel.add("group");
+            layerGroupL.alignment = "left";
+            var layerGroupR = layerPanel.add("group");
+            layerGroupR.alignment = "left";
             // -- item --
             var itemNames = [];
             var items = [];
@@ -5861,14 +5891,15 @@
                     items.push(app.project.items[i]);
                 }
             }
-            var itemGroup = parentGroup.add("group");
-            itemGroup.orientation = 'row';
-            var itemText = itemGroup.add("statictext", undefined, "item: ");
-            var itemDropDownList = itemGroup.add("dropdownlist", undefined, itemNames);
-            var executeButton = parentGroup.add("button", undefined, "Start");
+            layerGroupL.add("statictext", undefined, "item: ");
+            var itemDropDownList = layerGroupR.add("dropdownlist", undefined, itemNames);
+            var buttonGroup = parentGroup.add("group");
+            buttonGroup.orientation = 'row';
+            buttonGroup.alignment = "right";
+            var executeButton = buttonGroup.add("button", undefined, "Start");
             executeButton.onClick = function () {
                 window.close();
-                onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index]);
+                onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index], offsetEditText.text);
             };
             window.center();
             window.show();
@@ -5877,9 +5908,12 @@
             function MidiReader() {
                 this.file = "";
                 this.tracks = [];
+                this.trackNames = [];
                 this.trackNum = -1;
                 this.trackIndex = 0;
                 this.index = 0;
+                this.resolution = 0;
+                this.tempo = [];
             }
             MidiReader.prototype.getStr = function (isTrack) {
                 if (isTrack)
@@ -5900,16 +5934,13 @@
             };
             MidiReader.prototype.getFlexibleNum = function (isTrack) {
                 if (isTrack === void 0) { isTrack = false; }
-                var num;
-                if (this.getNum(1, isTrack) & 0x80 != 0) {
-                    this.index--;
-                    num = this.getNum(2, isTrack) - 0x8000;
-                }
-                else {
-                    this.index--;
+                var num = this.getNum(1, isTrack);
+                var ret = (num & 0x7f);
+                while (num >= 0x80) {
                     num = this.getNum(1, isTrack);
+                    ret = ret << 7 | (num & 0x7f);
                 }
-                return num;
+                return ret;
             };
             MidiReader.prototype.load = function (path) {
                 var f = new File(path);
@@ -5929,15 +5960,18 @@
                     this.index += length + 4;
                 }
             };
-            MidiReader.prototype.readTrackNames = function () {
-                var trackNames = [];
+            MidiReader.prototype.readInfo = function () {
+                this.index = 0x0C;
+                this.resolution = this.getNum(2);
                 for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
                     var t = 0;
                     this.index = 0;
-                    this.index = 0;
+                    // alert("track: " + this.trackIndex);
                     while (this.index < this.tracks[this.trackIndex].length) {
                         t += this.getFlexibleNum(true);
                         var event = this.getNum(1, true);
+                        // alert(event.toString(16));
+                        // alert(this.index);
                         // SysEx Event
                         if (event == 0xf0 || event == 0xf7) {
                             var length = this.getFlexibleNum(true);
@@ -5948,52 +5982,135 @@
                         // Meta Event
                         else if (event == 0xFF) {
                             var eventType = this.getNum(1, true);
-                            if (eventType >> 4 == 0) {
-                                var length = this.getFlexibleNum(true);
-                                if (eventType != 3) {
-                                    this.index += length;
-                                }
-                                else {
+                            var length = this.getFlexibleNum(true);
+                            // alert("eventType" + eventType.toString(16));
+                            switch (eventType) {
+                                // Sequence/Track Name
+                                case 0x03:
                                     var sjisText = this.getStr(true).substring(this.index, this.index + length);
                                     var text = encoding.convert(sjisText, "UNICODE", "SJIS");
-                                    trackNames.push(text);
+                                    this.trackNames.push(text);
+                                    this.index += length;
                                     break;
-                                }
-                            }
-                            else {
-                                switch (eventType) {
-                                    // End of Track
-                                    case 0x2f:
-                                        this.index++;
-                                        break;
-                                    // Set Tempo
-                                    case 0x51:
-                                        this.index += 4;
-                                        break;
-                                    // Time Signature
-                                    case 0x58:
-                                        this.index += 5;
-                                        break;
-                                    // Key Signature
-                                    case 0x59:
-                                        this.index += 3;
-                                        break;
-                                    default:
-                                        alert("unregisterred eventType: " + eventType);
-                                        break;
-                                }
+                                // Set Tempo
+                                case 0x51:
+                                    this.tempo.push({ t: t, tempo: this.getNum(3, true) });
+                                    $.writeln("t: " + this.tempo[this.tempo.length - 1].t);
+                                    $.writeln("tempo: " + this.tempo[this.tempo.length - 1].tempo);
+                                    break;
+                                default:
+                                    this.index += length;
+                                    break;
                             }
                         }
                         // MIDI Event
                         else {
-                            this.index += 4;
+                            // Adapt Runnning-Status-Rule
+                            if (event < 0x80)
+                                this.index++;
+                            else
+                                this.index += 2;
                         }
                     }
                 }
-                return trackNames;
+            };
+            MidiReader.prototype.getTrackNames = function () {
+                return this.trackNames;
+            };
+            MidiReader.prototype.readTimings = function (trackIndex, offsetBeat) {
+                var t = 0;
+                var beforeEventTop;
+                var offset = this.getSecond(offsetBeat * this.resolution);
+                this.index = 0;
+                this.trackIndex = trackIndex;
+                var timings = [];
+                while (this.index < this.tracks[this.trackIndex].length) {
+                    t += this.getFlexibleNum(true);
+                    // $.writeln("t: " + t);
+                    var event = this.getNum(1, true);
+                    // $.writeln("event: " + event.toString(16));
+                    if (event == 0xf0 || event == 0xf7) {
+                        var length = this.getFlexibleNum(true);
+                        this.index += length;
+                        if (event == 0x70)
+                            this.index++;
+                    }
+                    // Meta Event
+                    else if (event == 0xFF) {
+                        this.index++; // Discard event type
+                        var length = this.getFlexibleNum(true);
+                        this.index += length;
+                    }
+                    // MIDI Event
+                    else {
+                        var top = event >> 4;
+                        if (top < 0x8) {
+                            top = beforeEventTop;
+                            this.index--;
+                            $.writeln("event top to: " + top.toString(16));
+                        }
+                        switch (top) {
+                            case 0x8: // Note Off
+                            case 0xA: // Polyphonic Key Pressure
+                            case 0xB: // Controll Change
+                            case 0xE: // Pitch Bend
+                                this.index += 2;
+                                break;
+                            case 0xC: // Program Change
+                            case 0xD: // Channel Pressure
+                                this.index++;
+                                break;
+                            // Note On
+                            case 0x9:
+                                this.index++;
+                                var velocity = this.getNum(1, true);
+                                if (velocity == 0)
+                                    break;
+                                var s = this.getSecond(t) - offset;
+                                if (s < 0)
+                                    break;
+                                // $.writeln("s: " + s);
+                                timings.push(s);
+                                break;
+                        }
+                        beforeEventTop = top;
+                    }
+                }
+                return timings;
+            };
+            MidiReader.prototype.getSecond = function (t) {
+                var s = 0;
+                for (var i = 0; i < this.tempo.length; i++) {
+                    if (i + 1 == this.tempo.length || t < this.tempo[i + 1].t) {
+                        s += (t - this.tempo[i].t) * this.tempo[i].tempo;
+                        break;
+                    }
+                    else {
+                        s += (this.tempo[i + 1].t - this.tempo[i].t) * this.tempo[i].tempo;
+                    }
+                }
+                return s / 1000000.0 / this.resolution;
             };
             return MidiReader;
         }());
+        function makeLayer(timings, item) {
+            var fps = 30;
+            var myComp = app.project.items.addComp('myComp', 1920, 1080, 1, 120, fps);
+            var layer = myComp.layers.add(item);
+            layer.timeRemapEnabled = true;
+            layer.startTime = timings[0];
+            for (var i = 0; i < timings.length; i++) {
+                var dir = i % 2 == 0 ? 1 : -1;
+                if (i != 0) {
+                    var beforeT = timings[i] - 0.0001;
+                    layer.scale.setValueAtTime(beforeT, [100 * -dir, 100]);
+                    // layer.property("Time Remap").addKey(beforeT);
+                    layer.property("Time Remap").setValueAtTime(beforeT, Math.min(beforeT - timings[i - 1], item.duration));
+                }
+                layer.scale.setValueAtTime(timings[i], [100 * dir, 100]);
+                layer.property("Time Remap").setValueAtTime(timings[i], 0);
+            }
+        }
         // main
         var midiReader;
         setting1();
@@ -6002,12 +6119,14 @@
             midiReader = new MidiReader();
             midiReader.load(path);
             midiReader.divideTracks();
-            var trackNames = midiReader.readTrackNames();
+            midiReader.readInfo();
+            var trackNames = midiReader.getTrackNames();
             setting2(trackNames);
         }
         // main 3(When Track selected)
-        function onSelectButtonClicked(trackIndex, item) {
-            var timings = midiReader.readTimings();
+        function onSelectButtonClicked(trackIndex, item, offset) {
+            var timings = midiReader.readTimings(trackIndex, offset);
+            makeLayer(timings, item);
         }
     })();
     /******/ 
