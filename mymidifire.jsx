@@ -82,16 +82,13 @@ class MidiReader {
 	}
 
 	getFlexibleNum(isTrack = false) {
-		var num;
-		if (this.getNum(1, isTrack) & 0x80 != 0) {
-			this.index--;
-			num = this.getNum(2, isTrack) - 0x8000;
-		}
-		else {
-			this.index--;
+		var num = this.getNum(1, isTrack);
+		var ret = (num & 0x7f);
+		while(num >= 0x80){
 			num = this.getNum(1, isTrack);
+			ret = ret << 7 | (num & 0x7f);
 		}
-		return num;
+		return ret;
 	}
 
 	constructor() {
