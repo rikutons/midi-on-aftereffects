@@ -180,36 +180,82 @@ class MidiReader {
 	getTrackNames(){
 		return this.trackNames;
 	}
-						switch (eventType) {
-							// End of Track
-							case 0x2f:
-								this.index++;
-								break;
-							// Set Tempo
-							case 0x51:
-								this.index += 4;
-								break;
-							// Time Signature
-							case 0x58:
-								this.index += 5;
-								break;
-							// Key Signature
-							case 0x59:
-								this.index += 3;
-								break;
-							default:
-								alert("unregisterred eventType: " + eventType);
-								break;
-						}
-					}
+
+	readTimings(trackIndex) {
+		var t = 0;
+		var beforeEventTop;
+		this.index = 0;
+		this.trackIndex = trackIndex;
+		var timings = [];
+		while(this.index < this.tracks[this.trackIndex].length) {
+			t += this.getFlexibleNum(true);
+			$.writeln("t: " + t);
+
+			var event = this.getNum(1, true);
+			$.writeln("event: " + event.toString(16));
+			if (event == 0xf0 || event == 0xf7) {
+				var length = this.getFlexibleNum(true);
+				this.index += length;
+				if (event == 0x70)
+					this.index++;
+			}
+			// Meta Event
+			else if (event == 0xFF) {
+				this.index++; // Discard event type
+				var length = this.getFlexibleNum(true);
+				this.index += length;
+			}
+			// MIDI Event
+			else {
+				var top = event >> 4;
+				if(top < 0x8){
+					top = beforeEventTop;
+					this.index--;
+					$.writeln("event top to: " + top.toString(16));
 				}
-				// MIDI Event
-				else {
-					this.index += 4;
+				switch(top){
+					case 0x8: // Note Off
+					case 0xA: // Polyphonic Key Pressure
+					case 0xB: // Controll Change
+					case 0xE: // Pitch Bend
+						this.index += 2;
+						break;
+					case 0xC: // Program Change
+					case 0xD: // Channel Pressure
+						this.index++;
+						break;
+					// Note On
+					case 0x9:
+						this.index++;
+						var velocity = this.getNum(1, true);
+						if(velocity == 0)
+							break;
+						var s = this.getSecond(t);
+						$.writeln("s: " + s);
+						timings.push(s);
+						break;
 				}
+				beforeEventTop = top;
 			}
 		}
-		return trackNames;
+		return timings;
+	}
+
+	getSecond(t) {
+		var s = 0;
+		for (var i = 0; i < this.tempo.length; i++) {
+			if(i + 1 == this.tempo.length || t < this.tempo[i + 1].t){
+				s += (t - this.tempo[i].t) * this.tempo[i].tempo;
+				break;
+			}
+			else{
+				s += (this.tempo[i + 1].t - this.tempo[i].t) * this.tempo[i].tempo;
+			}
+		}
+		return s / 1000000.0 / this.resolution;
+	}
+}
+
 	}
 }
 
@@ -229,5 +275,5 @@ function onLoadButtonClicked(path) {
 
 // main 3(When Track selected)
 function onSelectButtonClicked(trackIndex, item) {
-	
+	var timings = midiReader.readTimings(trackIndex);
 }
