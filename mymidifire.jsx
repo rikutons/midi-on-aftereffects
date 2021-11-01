@@ -167,7 +167,11 @@ class MidiReader {
 				}
 				// MIDI Event
 				else {
-					this.index += 4;
+					// Adapt Runnning-Status-Rule
+					if(event < 0x80)
+						this.index++;
+					else
+						this.index += 2;
 				}
 			}
 		}
