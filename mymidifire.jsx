@@ -1,25 +1,33 @@
 var encoding = require('encoding-japanese');
+var gFileName = "";
 function setting1(){
 	var window = new Window("dialog", "MidiFire");
 	var parentGroup = window.add("group");
 	parentGroup.orientation = 'column';
+	var midiPath = "";
 
 	// -- midipath --
-	var midiPathGroup = parentGroup.add("group");
+	var midiPathPanel = parentGroup.add("panel", undefined, "Midi Setting");
+	midiPathPanel.add("statictext",undefined,"Select .midi File");
+	var midiPathGroup = midiPathPanel.add("group");
 	midiPathGroup.orientation = 'row';
 	var midiPathText = midiPathGroup.add("statictext",undefined,"");
 	midiPathText.characters = 20;
 	var midiLoader = midiPathGroup.add('button',undefined, '...');
 	midiLoader.onClick= function () {
 		midiPath = File.openDialog("Select Midi file", "*.mid")
-		midiPathText.text= midiPath;
+		gFileName = midiPath.displayName;
+		midiPathText.text = midiPath.displayName;
 	}
 	// ----
 
-	var executeButton = parentGroup.add("button",undefined, "Load");
+	var buttonGroup = parentGroup.add("group");
+	buttonGroup.orientation = 'row';
+	buttonGroup.alignment = "right";
+	var executeButton = buttonGroup.add("button",undefined, "Load");
 	executeButton.onClick = function(){
 		window.close();
-		onLoadButtonClicked(midiPathText.text);
+		onLoadButtonClicked(midiPath);
 	}
 
 	window.center();
@@ -30,13 +38,36 @@ function setting2(trackNames) {
 	var window = new Window("dialog", "MidiFire");
 	var parentGroup = window.add("group");
 	parentGroup.orientation = 'column';
+	parentGroup.alignChildren = 'left';
 
+	var midiPanel = parentGroup.add("panel", undefined, "Midi Setting");
+	midiPanel.orientation = "row";
+	var midiGroupL = midiPanel.add("group");
+	midiGroupL.alignment = "left";
+	midiGroupL.orientation = "column";
+	var midiGroupR = midiPanel.add("group");
+	midiGroupR.alignment = "left";
+	midiGroupR.alignChildren = 'left';
+	midiGroupR.orientation = "column";
+	midiGroupL.add("statictext", undefined, "name:");
+	midiGroupR.add("statictext", undefined, gFileName);
 	// -- track --
-	var trackGroup = parentGroup.add("group");
-	trackGroup.orientation = 'row';
-	var trackText = trackGroup.add("statictext", undefined, "track: ");
-	var trackDropDownList = trackGroup.add("dropdownlist", undefined, trackNames);
+	midiGroupL.add("statictext", undefined, "track: ");
+	var trackDropDownList = midiGroupR.add("dropdownlist", undefined, trackNames);
 
+	// -- offset --
+	midiGroupL.add("statictext", undefined, "offset: ");
+	var offsetGroup = midiGroupR.add("group");
+	var offsetEditText = offsetGroup.add("edittext", [0, 0, 60, 20], "0");
+	offsetGroup.alignment = "left";
+	offsetGroup.add("statictext", undefined, "[beats]");
+
+	var layerPanel = parentGroup.add("panel", undefined, "New Layer Setting");
+	layerPanel.orientation = "row";
+	var layerGroupL = layerPanel.add("group");
+	layerGroupL.alignment = "left";
+	var layerGroupR = layerPanel.add("group");
+	layerGroupR.alignment = "left";
 	// -- item --
 	var itemNames = [];
 	var items = [];
@@ -46,22 +77,15 @@ function setting2(trackNames) {
 			items.push(app.project.items[i]);
 		}
 	}
-	var itemGroup = parentGroup.add("group");
-	itemGroup.orientation = 'row';
-	var itemText = itemGroup.add("statictext", undefined, "item: ");
-	var itemDropDownList = itemGroup.add("dropdownlist", undefined, itemNames);
+	layerGroupL.add("statictext", undefined, "item: ");
+	var itemDropDownList = layerGroupR.add("dropdownlist", undefined, itemNames);
 
-	// -- offset --
-	var offsetGroup = parentGroup.add("group");
-	offsetGroup.orientation = 'row';
-	offsetGroup.add("statictext", undefined, "offset: ");
-	var offsetEditText = offsetGroup.add("edittext", undefined, "0");
-	offsetGroup.add("statictext", undefined, "[beats]");
-
-	var executeButton = parentGroup.add("button", undefined, "Start");
+	var buttonGroup = parentGroup.add("group");
+	buttonGroup.orientation = 'row';
+	buttonGroup.alignment = "right";
+	var executeButton = buttonGroup.add("button", undefined, "Start");
 	executeButton.onClick = function () {
 		window.close();
-		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index]);
 		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index], offsetEditText.text);
 	}
 
