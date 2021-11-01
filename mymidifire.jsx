@@ -51,10 +51,18 @@ function setting2(trackNames) {
 	var itemText = itemGroup.add("statictext", undefined, "item: ");
 	var itemDropDownList = itemGroup.add("dropdownlist", undefined, itemNames);
 
+	// -- offset --
+	var offsetGroup = parentGroup.add("group");
+	offsetGroup.orientation = 'row';
+	offsetGroup.add("statictext", undefined, "offset: ");
+	var offsetEditText = offsetGroup.add("edittext", undefined, "0");
+	offsetGroup.add("statictext", undefined, "[beats]");
+
 	var executeButton = parentGroup.add("button", undefined, "Start");
 	executeButton.onClick = function () {
 		window.close();
 		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index]);
+		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index], offsetEditText.text);
 	}
 
 	window.center();
@@ -181,9 +189,10 @@ class MidiReader {
 		return this.trackNames;
 	}
 
-	readTimings(trackIndex) {
+	readTimings(trackIndex, offsetBeat) {
 		var t = 0;
 		var beforeEventTop;
+		var offset = this.getSecond(offsetBeat * this.resolution);
 		this.index = 0;
 		this.trackIndex = trackIndex;
 		var timings = [];
@@ -230,7 +239,9 @@ class MidiReader {
 						var velocity = this.getNum(1, true);
 						if(velocity == 0)
 							break;
-						var s = this.getSecond(t);
+						var s = this.getSecond(t) - offset;
+						if(s < 0)
+							break;
 						$.writeln("s: " + s);
 						timings.push(s);
 						break;
@@ -274,6 +285,6 @@ function onLoadButtonClicked(path) {
 }
 
 // main 3(When Track selected)
-function onSelectButtonClicked(trackIndex, item) {
-	var timings = midiReader.readTimings(trackIndex);
+function onSelectButtonClicked(trackIndex, item, offset) {
+	var timings = midiReader.readTimings(trackIndex, offset);
 }
