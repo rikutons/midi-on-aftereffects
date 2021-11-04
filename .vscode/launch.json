@@ -10,7 +10,7 @@
       "request": "launch",
       "name": "execute",
       "preLaunchTask": "npm: build",
-      "program": "${workspaceFolder}/output.js",
+      "program": "${workspaceFolder}/midi-fire.js",
       "stopOnEntry": false
     }
   ]

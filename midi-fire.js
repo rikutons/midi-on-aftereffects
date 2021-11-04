@@ -5816,9 +5816,9 @@
     var __webpack_exports__ = {};
     // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
     (function () {
-        /*!************************!*\
-          !*** ./mymidifire.jsx ***!
-          \************************/
+        /*!*******************!*\
+          !*** ./index.jsx ***!
+          \*******************/
         var encoding = __webpack_require__(/*! encoding-japanese */ "./node_modules/encoding-japanese/src/index.js");
         var gFileName = "";
         function setting1() {
