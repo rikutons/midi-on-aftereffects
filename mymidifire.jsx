@@ -1,4 +1,4 @@
-var encoding = require('encoding-japanese');
+﻿var encoding = require('encoding-japanese');
 var gFileName = "";
 function setting1(){
 	var window = new Window("dialog", "MidiFire");
@@ -62,6 +62,14 @@ function setting2(trackNames) {
 	offsetGroup.alignment = "left";
 	offsetGroup.add("statictext", undefined, "[beats]");
 
+	// -- note range --
+	midiGroupL.add("statictext", undefined, "note range: ");
+	var noteGroup = midiGroupR.add("group");
+	var noteMinEditText = noteGroup.add("edittext", [0, 0, 60, 20], "0");
+	noteGroup.add("statictext", undefined, " ～ ");
+	var noteMaxEditText = noteGroup.add("edittext", [0, 0, 60, 20], "255");
+	noteGroup.alignment = "left";
+
 	var layerPanel = parentGroup.add("panel", undefined, "New Layer Setting");
 	layerPanel.orientation = "row";
 	var layerGroupL = layerPanel.add("group");
@@ -86,7 +94,8 @@ function setting2(trackNames) {
 	var executeButton = buttonGroup.add("button", undefined, "Start");
 	executeButton.onClick = function () {
 		window.close();
-		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index], offsetEditText.text);
+		var noteRange = [parseInt(noteMinEditText.text), parseInt(noteMaxEditText.text)];
+		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index], offsetEditText.text, noteRange);
 	}
 
 	window.center();
@@ -215,7 +224,7 @@ class MidiReader {
 		return this.trackNames;
 	}
 
-	readTimings(trackIndex, offsetBeat) {
+	readTimings(trackIndex, offsetBeat, noteRange) {
 		var t = 0;
 		var beforeEventTop;
 		var offset = this.getSecond(offsetBeat * this.resolution);
@@ -261,7 +270,11 @@ class MidiReader {
 						break;
 					// Note On
 					case 0x9:
-						this.index++;
+						var note = this.getNum(1, true);
+						if(noteRange[0] > note || noteRange[1] < note){
+							this.index++;
+							break;
+						}
 						var velocity = this.getNum(1, true);
 						if(velocity == 0)
 							break;
@@ -328,7 +341,7 @@ function onLoadButtonClicked(path) {
 }
 
 // main 3(When Track selected)
-function onSelectButtonClicked(trackIndex, item, offset) {
-	var timings = midiReader.readTimings(trackIndex, offset);
+function onSelectButtonClicked(trackIndex, item, offset, noteRange) {
+	var timings = midiReader.readTimings(trackIndex, offset, noteRange);
 	makeLayer(timings, item);
 }
