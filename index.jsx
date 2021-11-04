@@ -300,7 +300,8 @@ class MidiReader {
 						var s = this.getSecond(t) - offset;
 						if(s < 0)
 							break;
-						timings.push(s);
+						if(timings[timings.length - 1] != s)
+							timings.push(s);
 						break;
 				}
 				beforeEventTop = top;
