@@ -35,47 +35,46 @@ function setting1(){
 }
 
 function setting2(trackNames) {
+	var textSize = [0, 0, 100, 20];
+	var editBoxSize = [0, 0, 60, 20];
 	var window = new Window("dialog", "MidiFire");
 	var parentGroup = window.add("group");
 	parentGroup.orientation = 'column';
 	parentGroup.alignChildren = 'left';
 
 	var midiPanel = parentGroup.add("panel", undefined, "Midi Setting");
-	midiPanel.orientation = "row";
-	var midiGroupL = midiPanel.add("group");
-	midiGroupL.alignment = "left";
-	midiGroupL.orientation = "column";
-	var midiGroupR = midiPanel.add("group");
-	midiGroupR.alignment = "left";
-	midiGroupR.alignChildren = 'left';
-	midiGroupR.orientation = "column";
-	midiGroupL.add("statictext", undefined, "name:");
-	midiGroupR.add("statictext", undefined, gFileName);
+	midiPanel.orientation = "column";
+
+	// -- name --
+	var nameGroup = midiPanel.add("group"); 
+	nameGroup.alignment = "left";
+	nameGroup.add("statictext", textSize, "name:");
+	nameGroup.add("statictext", undefined, gFileName);
+
 	// -- track --
-	midiGroupL.add("statictext", undefined, "track: ");
-	var trackDropDownList = midiGroupR.add("dropdownlist", undefined, trackNames);
+	var trackGroup = midiPanel.add("group");
+	trackGroup.alignment = "left";
+	trackGroup.add("statictext", textSize, "track: ");
+	var trackDropDownList = trackGroup.add("dropdownlist", undefined, trackNames);
 
 	// -- offset --
-	midiGroupL.add("statictext", undefined, "offset: ");
-	var offsetGroup = midiGroupR.add("group");
-	var offsetEditText = offsetGroup.add("edittext", [0, 0, 60, 20], "0");
+	var offsetGroup = midiPanel.add("group");
 	offsetGroup.alignment = "left";
+	offsetGroup.add("statictext", textSize, "offset: ");
+	var offsetEditText = offsetGroup.add("edittext", editBoxSize, "0");
 	offsetGroup.add("statictext", undefined, "[beats]");
 
 	// -- note range --
-	midiGroupL.add("statictext", undefined, "note range: ");
-	var noteGroup = midiGroupR.add("group");
-	var noteMinEditText = noteGroup.add("edittext", [0, 0, 60, 20], "0");
-	noteGroup.add("statictext", undefined, " ～ ");
-	var noteMaxEditText = noteGroup.add("edittext", [0, 0, 60, 20], "255");
+	var noteGroup = midiPanel.add("group");
 	noteGroup.alignment = "left";
+	noteGroup.add("statictext", textSize, "note range: ");
+	noteGroup.add("statictext", undefined, "min: ");
+	var noteMinEditText = noteGroup.add("edittext", editBoxSize, "0");
+	noteGroup.add("statictext", undefined, "max: ");
+	var noteMaxEditText = noteGroup.add("edittext", editBoxSize, "255");
 
 	var layerPanel = parentGroup.add("panel", undefined, "New Layer Setting");
-	layerPanel.orientation = "row";
-	var layerGroupL = layerPanel.add("group");
-	layerGroupL.alignment = "left";
-	var layerGroupR = layerPanel.add("group");
-	layerGroupR.alignment = "left";
+	layerPanel.orientation = "column";
 	// -- item --
 	var itemNames = [];
 	var items = [];
@@ -85,8 +84,10 @@ function setting2(trackNames) {
 			items.push(app.project.items[i]);
 		}
 	}
-	layerGroupL.add("statictext", undefined, "item: ");
-	var itemDropDownList = layerGroupR.add("dropdownlist", undefined, itemNames);
+	var itemGroup = layerPanel.add("group");
+	itemGroup.alignment = "left";
+	itemGroup.add("statictext", textSize, "item: ");
+	var itemDropDownList = itemGroup.add("dropdownlist", undefined, itemNames);
 
 	var buttonGroup = parentGroup.add("group");
 	buttonGroup.orientation = 'row';

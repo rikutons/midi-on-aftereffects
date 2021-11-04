@@ -5852,43 +5852,40 @@
             window.show();
         }
         function setting2(trackNames) {
+            var textSize = [0, 0, 100, 20];
+            var editBoxSize = [0, 0, 60, 20];
             var window = new Window("dialog", "MidiFire");
             var parentGroup = window.add("group");
             parentGroup.orientation = 'column';
             parentGroup.alignChildren = 'left';
             var midiPanel = parentGroup.add("panel", undefined, "Midi Setting");
-            midiPanel.orientation = "row";
-            var midiGroupL = midiPanel.add("group");
-            midiGroupL.alignment = "left";
-            midiGroupL.orientation = "column";
-            var midiGroupR = midiPanel.add("group");
-            midiGroupR.alignment = "left";
-            midiGroupR.alignChildren = 'left';
-            midiGroupR.orientation = "column";
-            midiGroupL.add("statictext", undefined, "name:");
-            midiGroupR.add("statictext", undefined, gFileName);
+            midiPanel.orientation = "column";
+            // -- name --
+            var nameGroup = midiPanel.add("group");
+            nameGroup.alignment = "left";
+            nameGroup.add("statictext", textSize, "name:");
+            nameGroup.add("statictext", undefined, gFileName);
             // -- track --
-            midiGroupL.add("statictext", undefined, "track: ");
-            var trackDropDownList = midiGroupR.add("dropdownlist", undefined, trackNames);
+            var trackGroup = midiPanel.add("group");
+            trackGroup.alignment = "left";
+            trackGroup.add("statictext", textSize, "track: ");
+            var trackDropDownList = trackGroup.add("dropdownlist", undefined, trackNames);
             // -- offset --
-            midiGroupL.add("statictext", undefined, "offset: ");
-            var offsetGroup = midiGroupR.add("group");
-            var offsetEditText = offsetGroup.add("edittext", [0, 0, 60, 20], "0");
+            var offsetGroup = midiPanel.add("group");
             offsetGroup.alignment = "left";
+            offsetGroup.add("statictext", textSize, "offset: ");
+            var offsetEditText = offsetGroup.add("edittext", editBoxSize, "0");
             offsetGroup.add("statictext", undefined, "[beats]");
             // -- note range --
-            midiGroupL.add("statictext", undefined, "note range: ");
-            var noteGroup = midiGroupR.add("group");
-            var noteMinEditText = noteGroup.add("edittext", [0, 0, 60, 20], "0");
-            noteGroup.add("statictext", undefined, " ～ ");
-            var noteMaxEditText = noteGroup.add("edittext", [0, 0, 60, 20], "255");
+            var noteGroup = midiPanel.add("group");
             noteGroup.alignment = "left";
+            noteGroup.add("statictext", textSize, "note range: ");
+            noteGroup.add("statictext", undefined, "min: ");
+            var noteMinEditText = noteGroup.add("edittext", editBoxSize, "0");
+            noteGroup.add("statictext", undefined, "max: ");
+            var noteMaxEditText = noteGroup.add("edittext", editBoxSize, "255");
             var layerPanel = parentGroup.add("panel", undefined, "New Layer Setting");
-            layerPanel.orientation = "row";
-            var layerGroupL = layerPanel.add("group");
-            layerGroupL.alignment = "left";
-            var layerGroupR = layerPanel.add("group");
-            layerGroupR.alignment = "left";
+            layerPanel.orientation = "column";
             // -- item --
             var itemNames = [];
             var items = [];
@@ -5898,8 +5895,10 @@
                     items.push(app.project.items[i]);
                 }
             }
-            layerGroupL.add("statictext", undefined, "item: ");
-            var itemDropDownList = layerGroupR.add("dropdownlist", undefined, itemNames);
+            var itemGroup = layerPanel.add("group");
+            itemGroup.alignment = "left";
+            itemGroup.add("statictext", textSize, "item: ");
+            var itemDropDownList = itemGroup.add("dropdownlist", undefined, itemNames);
             var buttonGroup = parentGroup.add("group");
             buttonGroup.orientation = 'row';
             buttonGroup.alignment = "right";
@@ -5974,12 +5973,9 @@
                 for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
                     var t = 0;
                     this.index = 0;
-                    // alert("track: " + this.trackIndex);
                     while (this.index < this.tracks[this.trackIndex].length) {
                         t += this.getFlexibleNum(true);
                         var event = this.getNum(1, true);
-                        // alert(event.toString(16));
-                        // alert(this.index);
                         // SysEx Event
                         if (event == 0xf0 || event == 0xf7) {
                             var length = this.getFlexibleNum(true);
@@ -5991,7 +5987,6 @@
                         else if (event == 0xFF) {
                             var eventType = this.getNum(1, true);
                             var length = this.getFlexibleNum(true);
-                            // alert("eventType" + eventType.toString(16));
                             switch (eventType) {
                                 // Sequence/Track Name
                                 case 0x03:
@@ -6003,8 +5998,6 @@
                                 // Set Tempo
                                 case 0x51:
                                     this.tempo.push({ t: t, tempo: this.getNum(3, true) });
-                                    $.writeln("t: " + this.tempo[this.tempo.length - 1].t);
-                                    $.writeln("tempo: " + this.tempo[this.tempo.length - 1].tempo);
                                     break;
                                 default:
                                     this.index += length;
@@ -6032,14 +6025,9 @@
                 this.index = 0;
                 this.trackIndex = trackIndex;
                 var timings = [];
-                alert(noteRange[0]);
-                alert(typeof (noteRange[0]));
-                alert(typeof (noteRange[1]));
                 while (this.index < this.tracks[this.trackIndex].length) {
                     t += this.getFlexibleNum(true);
-                    // $.writeln("t: " + t);
                     var event = this.getNum(1, true);
-                    // $.writeln("event: " + event.toString(16));
                     if (event == 0xf0 || event == 0xf7) {
                         var length = this.getFlexibleNum(true);
                         this.index += length;
@@ -6058,7 +6046,6 @@
                         if (top < 0x8) {
                             top = beforeEventTop;
                             this.index--;
-                            // $.writeln("event top to: " + top.toString(16));
                         }
                         switch (top) {
                             case 0x8: // Note Off
@@ -6074,9 +6061,7 @@
                             // Note On
                             case 0x9:
                                 var note = this.getNum(1, true);
-                                // $.writeln("note: " + note);
                                 if (noteRange[0] > note || noteRange[1] < note) {
-                                    $.writeln("breaked on " + note);
                                     this.index++;
                                     break;
                                 }
@@ -6086,7 +6071,6 @@
                                 var s = this.getSecond(t) - offset;
                                 if (s < 0)
                                     break;
-                                // $.writeln("s: " + s);
                                 timings.push(s);
                                 break;
                         }
