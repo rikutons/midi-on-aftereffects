@@ -1,4 +1,4 @@
-﻿var encoding = require('encoding-japanese');
+var encoding = require('encoding-japanese');
 var gFileName = "";
 function setting1(){
 	var window = new Window("dialog", "MidiFire");
@@ -305,7 +305,8 @@ function makeLayer(timings, item) {
 			var beforeT = timings[i] - 0.0001;
 			layer.scale.setValueAtTime(beforeT, [100 * -dir, 100]);
 			// layer.property("Time Remap").addKey(beforeT);
-			layer.property("Time Remap").setValueAtTime(beforeT, Math.min(beforeT - timings[i - 1], item.duration));
+			// Added +0 to ignore -0
+			layer.property("Time Remap").setValueAtTime(beforeT, Math.min(beforeT - timings[i - 1] + 0, item.duration));
 		}
 		layer.scale.setValueAtTime(timings[i], [100 * dir, 100]);
 		layer.property("Time Remap").setValueAtTime(timings[i], 0);
