@@ -1,8 +1,8 @@
 var ES3Plugin = require("webpack-es3-plugin");
 module.exports = {
-    entry: './mymidifire.jsx',
+    entry: './index.jsx',
     output: {
-        filename: 'output.js',
+        filename: 'midi-fire.js',
         path: __dirname
     },
     // mode: 'production',  //モード

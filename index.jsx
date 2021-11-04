@@ -35,39 +35,47 @@ function setting1(){
 }
 
 function setting2(trackNames) {
+	var textSize = [0, 0, 100, 20];
+	var editBoxSize = [0, 0, 60, 20];
+	var bigEditBoxSize = [0, 0, 240, 20];
 	var window = new Window("dialog", "MidiFire");
 	var parentGroup = window.add("group");
 	parentGroup.orientation = 'column';
 	parentGroup.alignChildren = 'left';
 
 	var midiPanel = parentGroup.add("panel", undefined, "Midi Setting");
-	midiPanel.orientation = "row";
-	var midiGroupL = midiPanel.add("group");
-	midiGroupL.alignment = "left";
-	midiGroupL.orientation = "column";
-	var midiGroupR = midiPanel.add("group");
-	midiGroupR.alignment = "left";
-	midiGroupR.alignChildren = 'left';
-	midiGroupR.orientation = "column";
-	midiGroupL.add("statictext", undefined, "name:");
-	midiGroupR.add("statictext", undefined, gFileName);
+	midiPanel.orientation = "column";
+
+	// -- name --
+	var nameGroup = midiPanel.add("group"); 
+	nameGroup.alignment = "left";
+	nameGroup.add("statictext", textSize, "name:");
+	nameGroup.add("statictext", undefined, gFileName);
+
 	// -- track --
-	midiGroupL.add("statictext", undefined, "track: ");
-	var trackDropDownList = midiGroupR.add("dropdownlist", undefined, trackNames);
+	var trackGroup = midiPanel.add("group");
+	trackGroup.alignment = "left";
+	trackGroup.add("statictext", textSize, "track: ");
+	var trackDropDownList = trackGroup.add("dropdownlist", undefined, trackNames);
 
 	// -- offset --
-	midiGroupL.add("statictext", undefined, "offset: ");
-	var offsetGroup = midiGroupR.add("group");
-	var offsetEditText = offsetGroup.add("edittext", [0, 0, 60, 20], "0");
+	var offsetGroup = midiPanel.add("group");
 	offsetGroup.alignment = "left";
+	offsetGroup.add("statictext", textSize, "offset: ");
+	var offsetEditText = offsetGroup.add("edittext", editBoxSize, "0");
 	offsetGroup.add("statictext", undefined, "[beats]");
 
-	var layerPanel = parentGroup.add("panel", undefined, "New Layer Setting");
-	layerPanel.orientation = "row";
-	var layerGroupL = layerPanel.add("group");
-	layerGroupL.alignment = "left";
-	var layerGroupR = layerPanel.add("group");
-	layerGroupR.alignment = "left";
+	// -- note range --
+	var noteGroup = midiPanel.add("group");
+	noteGroup.alignment = "left";
+	noteGroup.add("statictext", textSize, "note range: ");
+	noteGroup.add("statictext", undefined, "min: ");
+	var noteMinEditText = noteGroup.add("edittext", editBoxSize, "0");
+	noteGroup.add("statictext", undefined, "max: ");
+	var noteMaxEditText = noteGroup.add("edittext", editBoxSize, "255");
+
+	var compPanel = parentGroup.add("panel", undefined, "New Composition Setting");
+	compPanel.orientation = "column";
 	// -- item --
 	var itemNames = [];
 	var items = [];
@@ -77,8 +85,34 @@ function setting2(trackNames) {
 			items.push(app.project.items[i]);
 		}
 	}
-	layerGroupL.add("statictext", undefined, "item: ");
-	var itemDropDownList = layerGroupR.add("dropdownlist", undefined, itemNames);
+	var itemGroup = compPanel.add("group");
+	itemGroup.alignment = "left";
+	itemGroup.add("statictext", textSize, "item: ");
+	var itemDropDownList = itemGroup.add("dropdownlist", undefined, itemNames);
+
+	// -- comp name --
+	var compNameGroup = compPanel.add("group");
+	compNameGroup.alignment = "left";
+	compNameGroup.add("statictext", textSize, "comp name: ");
+	var compNameEditText = compNameGroup.add("edittext", bigEditBoxSize, "");
+	trackDropDownList.onChange = function () {
+		compNameEditText.text = trackDropDownList.selection;
+	}
+
+	// -- comp size --
+	var compSizeGroup = compPanel.add("group");
+	compSizeGroup.alignment = "left";
+	compSizeGroup.add("statictext", textSize, "comp size: ");
+	compSizeGroup.add("statictext", undefined, "width: ");
+	var compWidthEditText = compSizeGroup.add("edittext", editBoxSize, 1920);
+	compSizeGroup.add("statictext", undefined, "height: ");
+	var compHeightEditText = compSizeGroup.add("edittext", editBoxSize, 1080);
+
+	// -- comp fps --
+	var compfpsGroup = compPanel.add("group");
+	compfpsGroup.alignment = "left";
+	compfpsGroup.add("statictext", textSize, "comp fps: ");
+	var compFpsEditText = compfpsGroup.add("edittext", editBoxSize, 30);
 
 	var buttonGroup = parentGroup.add("group");
 	buttonGroup.orientation = 'row';
@@ -86,7 +120,10 @@ function setting2(trackNames) {
 	var executeButton = buttonGroup.add("button", undefined, "Start");
 	executeButton.onClick = function () {
 		window.close();
-		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index], offsetEditText.text);
+		var noteRange = [parseInt(noteMinEditText.text), parseInt(noteMaxEditText.text)];
+		var compSize = [parseInt(compWidthEditText.text), parseInt(compHeightEditText.text)];
+		var fps = parseInt(compFpsEditText.text);
+		onSelectButtonClicked(trackDropDownList.selection.index, items[itemDropDownList.selection.index], offsetEditText.text, noteRange, compNameEditText.text, compSize, fps);
 	}
 
 	window.center();
@@ -161,13 +198,10 @@ class MidiReader {
 		for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
 			var t = 0;
 			this.index = 0;
-			// alert("track: " + this.trackIndex);
 			while(this.index < this.tracks[this.trackIndex].length) {
 				t += this.getFlexibleNum(true);
 
 				var event = this.getNum(1, true);
-				// alert(event.toString(16));
-				// alert(this.index);
 				// SysEx Event
 				if (event == 0xf0 || event == 0xf7) {
 					var length = this.getFlexibleNum(true);
@@ -179,7 +213,6 @@ class MidiReader {
 				else if (event == 0xFF) {
 					var eventType = this.getNum(1, true);
 					var length = this.getFlexibleNum(true);
-					// alert("eventType" + eventType.toString(16));
 					switch (eventType) {
 						// Sequence/Track Name
 						case 0x03:
@@ -191,8 +224,6 @@ class MidiReader {
 						// Set Tempo
 						case 0x51:
 							this.tempo.push({t: t, tempo: this.getNum(3, true)});
-							$.writeln("t: " + this.tempo[this.tempo.length - 1].t)
-							$.writeln("tempo: " + this.tempo[this.tempo.length - 1].tempo);
 							break;
 						default:
 							this.index += length;
@@ -215,7 +246,7 @@ class MidiReader {
 		return this.trackNames;
 	}
 
-	readTimings(trackIndex, offsetBeat) {
+	readTimings(trackIndex, offsetBeat, noteRange) {
 		var t = 0;
 		var beforeEventTop;
 		var offset = this.getSecond(offsetBeat * this.resolution);
@@ -224,10 +255,8 @@ class MidiReader {
 		var timings = [];
 		while(this.index < this.tracks[this.trackIndex].length) {
 			t += this.getFlexibleNum(true);
-			// $.writeln("t: " + t);
 
 			var event = this.getNum(1, true);
-			// $.writeln("event: " + event.toString(16));
 			if (event == 0xf0 || event == 0xf7) {
 				var length = this.getFlexibleNum(true);
 				this.index += length;
@@ -246,7 +275,6 @@ class MidiReader {
 				if(top < 0x8){
 					top = beforeEventTop;
 					this.index--;
-					$.writeln("event top to: " + top.toString(16));
 				}
 				switch(top){
 					case 0x8: // Note Off
@@ -261,14 +289,17 @@ class MidiReader {
 						break;
 					// Note On
 					case 0x9:
-						this.index++;
+						var note = this.getNum(1, true);
+						if(noteRange[0] > note || noteRange[1] < note){
+							this.index++;
+							break;
+						}
 						var velocity = this.getNum(1, true);
 						if(velocity == 0)
 							break;
 						var s = this.getSecond(t) - offset;
 						if(s < 0)
 							break;
-						// $.writeln("s: " + s);
 						timings.push(s);
 						break;
 				}
@@ -293,9 +324,8 @@ class MidiReader {
 	}
 }
 
-function makeLayer(timings, item) {
-	var fps = 30;
-	var myComp = app.project.items.addComp('myComp', 1920, 1080, 1, 120, fps);
+function makeLayer(timings, item, compName, compSize, fps) {
+	var myComp = app.project.items.addComp(compName, compSize[0], compSize[1], 1, timings[timings.length - 1], fps);
 	var layer = myComp.layers.add(item);
 	layer.timeRemapEnabled = true;
 	layer.startTime = timings[0];
@@ -304,8 +334,8 @@ function makeLayer(timings, item) {
 		if(i != 0) {
 			var beforeT = timings[i] - 0.0001;
 			layer.scale.setValueAtTime(beforeT, [100 * -dir, 100]);
-			// layer.property("Time Remap").addKey(beforeT);
-			layer.property("Time Remap").setValueAtTime(beforeT, Math.min(beforeT - timings[i - 1], item.duration));
+			// Added +0 to ignore -0
+			layer.property("Time Remap").setValueAtTime(beforeT, Math.min(beforeT - timings[i - 1] + 0, item.duration));
 		}
 		layer.scale.setValueAtTime(timings[i], [100 * dir, 100]);
 		layer.property("Time Remap").setValueAtTime(timings[i], 0);
@@ -327,7 +357,7 @@ function onLoadButtonClicked(path) {
 }
 
 // main 3(When Track selected)
-function onSelectButtonClicked(trackIndex, item, offset) {
-	var timings = midiReader.readTimings(trackIndex, offset);
-	makeLayer(timings, item);
+function onSelectButtonClicked(trackIndex, item, offset, noteRange, compName, compSize, fps) {
+	var timings = midiReader.readTimings(trackIndex, offset, noteRange);
+	makeLayer(timings, item, compName, compSize, fps);
 }
