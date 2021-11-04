@@ -170,13 +170,10 @@ class MidiReader {
 		for (this.trackIndex = 0; this.trackIndex < this.trackNum; this.trackIndex++) {
 			var t = 0;
 			this.index = 0;
-			// alert("track: " + this.trackIndex);
 			while(this.index < this.tracks[this.trackIndex].length) {
 				t += this.getFlexibleNum(true);
 
 				var event = this.getNum(1, true);
-				// alert(event.toString(16));
-				// alert(this.index);
 				// SysEx Event
 				if (event == 0xf0 || event == 0xf7) {
 					var length = this.getFlexibleNum(true);
@@ -188,7 +185,6 @@ class MidiReader {
 				else if (event == 0xFF) {
 					var eventType = this.getNum(1, true);
 					var length = this.getFlexibleNum(true);
-					// alert("eventType" + eventType.toString(16));
 					switch (eventType) {
 						// Sequence/Track Name
 						case 0x03:
@@ -200,8 +196,6 @@ class MidiReader {
 						// Set Tempo
 						case 0x51:
 							this.tempo.push({t: t, tempo: this.getNum(3, true)});
-							$.writeln("t: " + this.tempo[this.tempo.length - 1].t)
-							$.writeln("tempo: " + this.tempo[this.tempo.length - 1].tempo);
 							break;
 						default:
 							this.index += length;
@@ -233,10 +227,8 @@ class MidiReader {
 		var timings = [];
 		while(this.index < this.tracks[this.trackIndex].length) {
 			t += this.getFlexibleNum(true);
-			// $.writeln("t: " + t);
 
 			var event = this.getNum(1, true);
-			// $.writeln("event: " + event.toString(16));
 			if (event == 0xf0 || event == 0xf7) {
 				var length = this.getFlexibleNum(true);
 				this.index += length;
@@ -255,7 +247,6 @@ class MidiReader {
 				if(top < 0x8){
 					top = beforeEventTop;
 					this.index--;
-					$.writeln("event top to: " + top.toString(16));
 				}
 				switch(top){
 					case 0x8: // Note Off
@@ -281,7 +272,6 @@ class MidiReader {
 						var s = this.getSecond(t) - offset;
 						if(s < 0)
 							break;
-						// $.writeln("s: " + s);
 						timings.push(s);
 						break;
 				}
